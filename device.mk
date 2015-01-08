@@ -171,7 +171,11 @@ PRODUCT_COPY_FILES += \
 	device/moto/shamu/priv-app/TriggerTrainingService/TriggerTrainingService.apk:system/priv-app/TriggerTrainingService/TriggerTrainingService.apk \
 	device/moto/shamu/etc/permissions/com.motorola.triggerenroll.xml:system/etc/permissions/com.motorola.triggerenroll.xml \
 	device/moto/shamu/lib/libtrainingcheck.so:system/lib/libtrainingcheck.so
+<<<<<<< HEAD
 
+=======
+	
+>>>>>>> b10790d... Added Ok Google and V4A with drivers
 # Audio effects
 PRODUCT_PACKAGES += \
     libqcomvisualizer \
