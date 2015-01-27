@@ -1,7 +1,8 @@
 [
-  {
-    "repository": "android_kernel_moto_shamu",
-    "target_path": "kernel/moto/shamu"
-  }
+    {
+        "remote": "TeamBliss-Devices",
+        "repository": "android_kernel_moto_shamu",
+        "target_path": "kernel/moto/shamu",
+        "revision": "lp5.0"
+    }
 ]
-
