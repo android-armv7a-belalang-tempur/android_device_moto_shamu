@@ -30,12 +30,12 @@
 #include <stdbool.h>
 
 #define LOG_TAG "PowerHAL"
-#define LOG_NDEBUG 0
 #include <utils/Log.h>
 
 #include <hardware/hardware.h>
 #include <hardware/power.h>
 
+#define TOUCH_INTERACTIVE_PATH "/sys/bus/i2c/devices/1-004a/tsp"
 #define STATE_ON "state=1"
 #define STATE_OFF "state=0"
 #define STATE_HDR_ON "state=2"
@@ -45,14 +45,6 @@
 static int client_sockfd;
 static struct sockaddr_un client_addr;
 static int last_state = -1;
-
-enum {
-    PROFILE_POWER_SAVE = 0,
-    PROFILE_BALANCED,
-    PROFILE_HIGH_PERFORMANCE
-};
-
-static int current_power_profile = PROFILE_BALANCED;
 
 static void socket_init()
 {
@@ -66,6 +58,30 @@ static void socket_init()
         client_addr.sun_family = AF_UNIX;
         snprintf(client_addr.sun_path, UNIX_PATH_MAX, BOOST_SOCKET);
     }
+}
+
+static int sysfs_write(const char *path, char *s)
+{
+    char buf[80];
+    int len;
+    int fd = open(path, O_WRONLY);
+
+    if (fd < 0) {
+        strerror_r(errno, buf, sizeof(buf));
+        ALOGE("Error opening %s: %s\n", path, buf);
+        return -1;
+    }
+
+    len = write(fd, s, strlen(s));
+    if (len < 0) {
+        strerror_r(errno, buf, sizeof(buf));
+        ALOGE("Error writing to %s: %s\n", path, buf);
+        close(fd);
+        return -1;
+    }
+
+    close(fd);
+    return 0;
 }
 
 static void power_init(__attribute__((unused)) struct power_module *module)
@@ -98,7 +114,7 @@ static void sync_thread(int off)
     }
 
     if (rc < 0) {
-        ALOGV("%s: failed to send: %s", __func__, strerror(errno));
+        ALOGE("%s: failed to send: %s", __func__, strerror(errno));
     }
 }
 
@@ -124,7 +140,7 @@ static void coresonline(int off)
     }
 
     if (rc < 0) {
-        ALOGV("%s: failed to send: %s", __func__, strerror(errno));
+        ALOGE("%s: failed to send: %s", __func__, strerror(errno));
     }
 }
 
@@ -152,7 +168,7 @@ static void enc_boost(int off)
     }
 
     if (rc < 0) {
-        ALOGV("%s: failed to send: %s", __func__, strerror(errno));
+        ALOGE("%s: failed to send: %s", __func__, strerror(errno));
     }
 }
 
@@ -205,7 +221,7 @@ static void touch_boost()
     rc = sendto(client_sockfd, data, strlen(data), 0,
         (const struct sockaddr *)&client_addr, sizeof(struct sockaddr_un));
     if (rc < 0) {
-        ALOGV("%s: failed to send: %s", __func__, strerror(errno));
+        ALOGE("%s: failed to send: %s", __func__, strerror(errno));
     }
 }
 
@@ -226,21 +242,31 @@ static void low_power(int on)
         snprintf(data, MAX_LENGTH, "10:%d", client);
         rc = sendto(client_sockfd, data, strlen(data), 0, (const struct sockaddr *)&client_addr, sizeof(struct sockaddr_un));
         if (rc < 0) {
-            ALOGV("%s: failed to send: %s", __func__, strerror(errno));
+            ALOGE("%s: failed to send: %s", __func__, strerror(errno));
         }
     } else {
         snprintf(data, MAX_LENGTH, "9:%d", client);
         rc = sendto(client_sockfd, data, strlen(data), 0, (const struct sockaddr *)&client_addr, sizeof(struct sockaddr_un));
         if (rc < 0) {
-            ALOGV("%s: failed to send: %s", __func__, strerror(errno));
+            ALOGE("%s: failed to send: %s", __func__, strerror(errno));
         }
     }
 }
 
+static void process_low_power_hint(void* data)
+{
+    int on = (long) data;
+    if (client_sockfd < 0) {
+        ALOGE("%s: boost socket not created", __func__);
+        return;
+    }
+
+    low_power(on);
+}
+
 static void power_set_interactive(__attribute__((unused)) struct power_module *module, int on)
 {
-    if (current_power_profile != PROFILE_BALANCED)
-        return;
+    sysfs_write(TOUCH_INTERACTIVE_PATH, on ? "AUTO" : "ON");
 
     if (last_state == -1) {
         last_state = on;
@@ -262,45 +288,12 @@ static void power_set_interactive(__attribute__((unused)) struct power_module *m
     }
 }
 
-static void set_power_profile(int profile) {
-
-    if (profile == current_power_profile)
-        return;
-
-    ALOGV("%s: profile=%d", __func__, profile);
-
-    if (profile == PROFILE_BALANCED) {
-        low_power(0);
-        coresonline(1);
-        sync_thread(1);
-        enc_boost(0);
-        ALOGD("%s: set balanced mode", __func__);
-    } else if (profile == PROFILE_HIGH_PERFORMANCE) {
-        low_power(0);
-        coresonline(1);
-        sync_thread(1);
-        enc_boost(1);
-        ALOGD("%s: set performance mode", __func__);
-
-    } else if (profile == PROFILE_POWER_SAVE) {
-        sync_thread(0);
-        coresonline(0);
-        enc_boost(0);
-        low_power(1);
-        ALOGD("%s: set powersave", __func__);
-    }
-
-    current_power_profile = profile;
-}
-
 static void power_hint( __attribute__((unused)) struct power_module *module,
                         __attribute__((unused)) power_hint_t hint,
                         __attribute__((unused)) void *data)
 {
     switch (hint) {
         case POWER_HINT_INTERACTION:
-            if (current_power_profile == PROFILE_POWER_SAVE)
-                return;
             ALOGV("POWER_HINT_INTERACTION");
             touch_boost();
             break;
@@ -310,21 +303,13 @@ static void power_hint( __attribute__((unused)) struct power_module *module,
             break;
 #endif
         case POWER_HINT_VIDEO_ENCODE:
-            if (current_power_profile != PROFILE_BALANCED)
-                return;
             process_video_encode_hint(data);
             break;
-        case POWER_HINT_SET_PROFILE:
-            set_power_profile((int)data);
-            break;
         case POWER_HINT_LOW_POWER:
-            if ((int)data == 1)
-                set_power_profile(PROFILE_POWER_SAVE);
-            else
-                set_power_profile(PROFILE_BALANCED);
-            break;
+             process_low_power_hint(data);
+             break;
         default:
-            break;
+             break;
     }
 }
 
