@@ -117,9 +117,18 @@ set_light_backlight(struct light_device_t* dev,
 }
 
 /**
+<<<<<<< HEAD
  * We can't use scaling colors due to the sperate gpio per led.
  * So we set it to absolute red, green or blue instead to avoid
  * artifacts of two different colors appearing at once.
+=======
+ * There is a sperate gpio per led. Each with a maximum brightness of 20.
+ * The normal rgb values are computed on a scale up to 255 so we divide them
+ * by 12.75 so that varied brightness per led is spread out evenly per color.
+ * The led is only optimal on absolute red, green or blue, and produces artifacts
+ * of two different colors appearing at once when more than one is active, but
+ * this is very limiting so ultimately we allow the end user full control.
+>>>>>>> 7daae497fb2c7db268c3d24c48dc7160f4b7fc53
  **/
 static int
 set_speaker_light_locked(struct light_device_t* dev,
@@ -130,9 +139,15 @@ set_speaker_light_locked(struct light_device_t* dev,
     int green = 0;
     int blue = 0;
 
+<<<<<<< HEAD
     if ((colorRGB >> 16) & 0xFF) red = 20, green = 0, blue = 0;
     if ((colorRGB >> 8) & 0xFF) green = 20, red = 0, blue = 0;
     if (colorRGB & 0xFF) blue = 20, red = 0, green = 0;
+=======
+    red = (((colorRGB >> 16) & 0xFF) / 12.75);
+    green = (((colorRGB >> 8) & 0xFF) / 12.75);
+    blue = ((colorRGB & 0xFF) / 12.75);
+>>>>>>> 7daae497fb2c7db268c3d24c48dc7160f4b7fc53
 
     write_int(RED_LED_FILE, red);
     write_int(GREEN_LED_FILE, green);
