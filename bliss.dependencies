@@ -1,8 +1,8 @@
 [
     {
-        "remote": "lsd",
+        "remote": "TeamBliss-Devices",
         "repository": "android_kernel_moto_shamu",
         "target_path": "kernel/moto/shamu",
-        "revision": "lollipop"
+        "revision": "lp5.0"
     }
 ]
