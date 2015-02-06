@@ -2,7 +2,7 @@
     {
         "remote": "lsd",
         "repository": "android_kernel_moto_shamu",
-        "target_path": "kernel/motorola/shamu",
+        "target_path": "kernel/moto/shamu",
         "revision": "lollipop"
     }
 ]
