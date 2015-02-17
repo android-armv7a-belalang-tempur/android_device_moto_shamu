@@ -185,3 +185,6 @@ BOARD_HARDWARE_CLASS := device/moto/shamu/cmhw
 
 # Block_Build
 Bliss_Build_Block:=1 
+
+# Bissify_Build
+BLISSIFY=true
