@@ -191,4 +191,4 @@ BLISSIFY=true
 
 # Tool Chain to build with
 BLISSIFY := true
-TARGET_GCC_VERSION_EXP := 4.9-sm
+TARGET_GCC_VERSION_EXP := 4.9
