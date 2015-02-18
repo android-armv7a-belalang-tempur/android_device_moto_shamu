@@ -188,3 +188,7 @@ Bliss_Build_Block:=1
 
 # Bissify_Build
 BLISSIFY=true
+
+# Tool Chain to build with
+BLISSIFY := true
+TARGET_GCC_VERSION_EXP := 4.9-sm
