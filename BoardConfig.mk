@@ -186,8 +186,10 @@ BOARD_HARDWARE_CLASS := device/moto/shamu/cmhw
 # Block_Build
 Bliss_Build_Block:=1 
 
-# Bissify_Build
-BLISSIFY=true
-
-# Tool Chain to build with
-TARGET_GCC_VERSION_EXP := 4.9
+# Bissiful building options
+#BLISSIFY :=true
+BLISS_O3 := true
+BLISS_STRICT := true
+BLISS_KRAIT := true
+TARGET_TC_ROM := 4.8
+TARGET_TC_KERNEL := 4.8
